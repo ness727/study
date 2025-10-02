@@ -83,7 +83,7 @@ public class CacheController {
             .build();
 
     @GetMapping("/v2")
-    public ResponseEntity<byte[]> getImageV2(@RequestParam String imageName, HttpServletResponse response) throws IOException {
+    public ResponseEntity<byte[]> getImageV2(@RequestParam String imageName) throws IOException {
         Path imagePath = Paths.get("/images/" + imageName + ".jpg");
         String mediaTypeStr = Files.probeContentType(imagePath);  // MediaType 설정
         MediaType mediaType = MediaType.parseMediaType(mediaTypeStr);
@@ -118,16 +118,18 @@ public class CacheController {
             .build();
 
     @GetMapping("/v3")
-    public ResponseEntity<byte[]> getImageV3(@RequestParam String imageName, HttpServletResponse response) throws IOException {
+    public ResponseEntity<byte[]> getImageV3(@RequestParam String imageName) throws IOException {
         Image image = cacheV3.getIfPresent(imageName);
 
-        if (image != null) {  // 이미 캐시에 있을 때
+        // 이미 캐시에 있을 때
+        if (image != null) {
             return ResponseEntity.ok()
                     .contentType(image.getMediaType())
                     .contentLength(image.getSize())
                     .body(image.getBytes());
         }
 
+        // 이미지 관련 정보 설정
         Path imagePath = Paths.get("/images/" + imageName + ".jpg");
         String mediaTypeStr = Files.probeContentType(imagePath);  // MediaType 설정
         MediaType mediaType = MediaType.parseMediaType(mediaTypeStr);
@@ -139,11 +141,14 @@ public class CacheController {
             return ResponseEntity.notFound().build();
         }
 
-//        Image.builder()
-//                        .bytes()
-//                                .
+        // 새 이미지 인스턴스 생성
+        Image newImage = Image.builder()
+                .bytes(imageBytes)
+                .size(Files.size(imagePath))
+                .mediaType(mediaType)
+                .build();
 
-//        cacheV3.put(imageName, imageBytes);  // 이미지 캐시 처리
+        cacheV3.put(imageName, newImage);  // 이미지 캐시 처리
 
         return ResponseEntity.ok()
                 .contentType(mediaType)
